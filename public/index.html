@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Store</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <h1>📚 Book Store</h1>
+    <form id="bookForm">
+        <input type="text" id="title" placeholder="Book Title" required />
+        <input type="text" id="author" placeholder="Author Name" required />
+        <input type="text" id="searchInput" placeholder="Search by title or author..." />
+        <button type="submit">Add Book</button>
+    </form>
+
+    <h2>All Books</h2>
+    <ul id="bookList"></ul>
+
+    <script>
+        const bookList = document.getElementById("bookList");
+        const bookForm = document.getElementById("bookForm");
+        const searchInput = document.getElementById("searchInput");
+
+        let allBooks = []; // Global array to store all books
+
+        // fetch books from backend 
+        async function fetchBooks() {
+            const res = await fetch("http://localhost:5000/books");
+            const books = await res.json();
+            bookList.innerHTML = "";
+            books.forEach(book => {
+                const li = document.createElement("li");
+                li.innerHTML = `
+                    <strong>${book.title}</strong> - ${book.author}
+                    <button onclick="deleteBook('${book._id}')">Delete</button>
+                    <button onclick="editBook('${book._id}' , '${book.title}' , '${book.author}')">Edit</button>
+                `;
+                bookList.appendChild(li);
+            });
+        }
+
+
+        // Display books to DOM
+        function displayBooks(books) {
+            bookList.innerHTML = "";
+            books.forEach(book => {
+                const li = document.createElement("li");
+                li.innerHTML = `
+            <strong>${book.title}</strong> - ${book.author}
+            <button onclick="deleteBook('${book._id}')">Delete</button>
+            <button onclick="editBook('${book._id}', '${book.title}', '${book.author}')">Edit</button>
+        `;
+                bookList.appendChild(li);
+            });
+        }
+
+
+        // Add new book
+        bookForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const title = document.getElementById("title").value;
+            const author = document.getElementById("author").value;
+            await fetch("http://localhost:5000/books", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title, author })
+            });
+            bookForm.reset();
+            fetchBooks();
+        }
+
+        // 🔍 Search books
+        searchInput.addEventListener("input", () => {
+            const keyword = searchInput.value.toLowerCase();
+            const filtered = allBooks.filter(book =>
+                book.title.toLowerCase().includes(keyword) ||
+                book.author.toLowerCase().includes(keyword)
+            );
+            displayBooks(filtered);
+        });
+
+        // Delete Book
+        async function deleteBook(id) {
+            await fetch(`http://localhost:5000/books/${id}`, { method: "DELETE" });
+            fetchBooks();
+        }
+
+        // fetch books from backend 
+        async function fetchBooks() {
+            const res = await fetch("http://localhost:5000/books");
+            allBooks = await res.json();
+            displayBooks(allBooks);
+        }
+
+        function editBook(id, oldTitle, oldAuthor) {
+            const newTitle = prompt("Edit Title", oldTitle);
+            const newAuthor = prompt("Edit Author", oldAuthor);
+
+            if (newTitle && newAuthor) {
+                fetch(`http://localhost:5000/books/${id}`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ title: newTitle, author: newAuthor })
+                }).then(fetchBooks);
+            }
+        }
+
+        fetchBooks();
+    </script>
+</body>
+
+</html>
